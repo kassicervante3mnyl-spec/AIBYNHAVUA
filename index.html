@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOOL THIÊN TRẦN</title>
+<style>
+  body{background:#050507;color:#cfcfcf;font-family:monospace;padding:20px;margin:0}
+  #hexbg{position:fixed;inset:0;z-index:0;color:#ff2d55;opacity:.22;font-size:11px;line-height:1.35;white-space:pre;overflow:hidden;pointer-events:none;text-shadow:0 0 4px rgba(255,45,85,.5)}
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto}
+  #lockScreen{position:fixed;inset:0;z-index:100;background:#050507;display:flex;align-items:center;justify-content:center;padding:20px}
+  #lockScreen.hidden{display:none}
+  .lock-box{background:#0a0a0d;border:1px solid #ff2d55;padding:40px 32px;max-width:420px;width:100%;box-shadow:0 0 30px rgba(255,45,85,.3);position:relative}
+  .lock-title{color:#ff2d55;font-size:20px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;text-align:center;margin-bottom:6px;text-shadow:0 0 10px rgba(255,45,85,.7)}
+  .lock-sub{color:#555;font-size:11px;text-align:center;letter-spacing:2px;margin-bottom:28px;text-transform:uppercase}
+  #keyInput{width:100%;padding:12px 14px;background:#000;border:1px solid #222;color:#ff2d55;font-family:inherit;font-size:13px;letter-spacing:1px;margin-bottom:16px;outline:none;box-sizing:border-box}
+  #keyInput:focus{border-color:#ff2d55;box-shadow:0 0 12px rgba(255,45,85,.4)}
+  #loginBtn{width:100%;padding:12px;background:#ff2d55;color:#000;border:1px solid #ff2d55;font-family:inherit;font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;cursor:pointer}
+  #loginBtn:hover{background:#ff4066}
+  #lockMsg{color:#ff2d55;font-size:12px;text-align:center;margin-top:14px;min-height:16px;letter-spacing:1px}
+  #keyBar{position:fixed;top:0;left:0;right:0;z-index:50;background:#0a0a0d;border-bottom:1px solid #ff2d55;padding:8px 16px;font-size:11px;display:none;align-items:center;justify-content:space-between;letter-spacing:1px}
+  #keyBar.show{display:flex}
+  #keyBar .left{color:#ff2d55}
+  #keyBar .right{color:#888}
+  #keyBar .time{color:#3f3;font-weight:bold}
+  #keyBar .time.warn{color:#fa3}
+  #keyBar .time.danger{color:#ff2d55}
+  h1{color:#ff2d55;font-size:22px;letter-spacing:4px;margin:0 0 4px;text-shadow:0 0 10px rgba(255,45,85,.6)}
+  .sub{color:#5a5a5a;font-size:11px;margin-bottom:18px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{padding:10px 22px;background:#0d0d0f;border:1px solid #222;color:#666;cursor:pointer;font-family:inherit;font-size:13px}
+  .tab.active{background:#ff2d55;color:#000;border-color:#ff2d55;font-weight:bold}
+  .panel{display:none}
+  .panel.active{display:block}
+  .dz{border:2px dashed #222;padding:40px;text-align:center;color:#555;cursor:pointer;background:#08080a;margin-bottom:16px}
+  .dz:hover,.dz.drag{border-color:#ff2d55;color:#ff2d55;background:#12030a}
+  .dz input{display:none}
+  .info{background:#0d0d0f;padding:12px;margin-bottom:16px;border-left:3px solid #ff2d55;font-size:12px;color:#aaa}
+  .info span{color:#ff2d55}
+  .row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  button{padding:8px 16px;background:#0d0d0f;border:1px solid #222;color:#cfcfcf;cursor:pointer;font-family:inherit;font-size:12px}
+  button:hover{border-color:#ff2d55;color:#ff2d55}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  .viewer{background:#000;border:1px solid #222;padding:12px;height:400px;overflow:auto;font-size:12px;line-height:1.5;white-space:pre;color:#888}
+  .viewer .addr{color:#333}
+  .viewer .hex{color:#4af}
+  .viewer .ascii{color:#aaa}
+  .viewer .str{color:#3f3}
+  .log{background:#000;border:1px solid #222;padding:12px;height:220px;overflow:auto;font-size:12px;color:#888;margin-top:14px}
+  .log .ok{color:#3f3}
+  .log .err{color:#ff2d55}
+  .log .warn{color:#fa3}
+  .label{margin:18px 0 10px;color:#ff2d55;font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+  .sq{aspect-ratio:1/1;padding:10px;background:#0d0d0f;border:1px solid #222;color:#cfcfcf;cursor:pointer;font-family:inherit;font-size:11px;line-height:1.35;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .sq:hover{border-color:#ff2d55;color:#ff2d55}
+  .sq:disabled{opacity:.3;cursor:not-allowed}
+  .sq .i{font-size:18px;margin-bottom:6px}
+  .sq .l{font-weight:bold}
+  .sq .s{font-size:9px;color:#666;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div id="hexbg"></div>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-title">TOOL THIÊN TRẦN</div>
+    <div class="lock-sub">// nhập key để vào //</div>
+    <input type="password" id="keyInput" placeholder="nhập key..." autocomplete="off" spellcheck="false">
+    <button id="loginBtn">xác nhận</button>
+    <div id="lockMsg"></div>
+  </div>
+</div>
+
+<div id="keyBar">
+  <div class="left">◆ key: <span id="keyName">---</span></div>
+  <div class="right">hết hạn sau: <span class="time" id="keyTime">--:--:--</span></div>
+</div>
+
+<div class="wrap" id="mainTool" style="display:none;padding-top:50px">
+  <h1>TOOL THIÊN TRẦN</h1>
+  <div class="sub">// vex build // upload · view · inject</div>
+
+  <div class="tabs">
+    <div class="tab active" id="t1" onclick="switchTab(1)">tab 1 // xem code</div>
+    <div class="tab" id="t2" onclick="switchTab(2)">tab 2 // bơm code</div>
+  </div>
+
+  <div class="panel active" id="p1">
+    <div class="dz" id="dz1">
+      <input type="file" id="f1" accept=".bin,.so,.dll,.exe">
+      <div>drop .bin / .so hoặc click // max 100MB</div>
+    </div>
+    <div class="info" id="i1" style="display:none"></div>
+    <div class="row">
+      <button onclick="viewAs('hex')">hex view</button>
+      <button onclick="viewAs('ascii')">ascii</button>
+      <button onclick="viewAs('strings')">strings</button>
+      <button id="dl1" onclick="dlRaw()" disabled>download raw</button>
+    </div>
+    <div class="viewer" id="v1">// chưa có file. upload đi nerd.</div>
+  </div>
+
+  <div class="panel" id="p2">
+    <div class="dz" id="dz2">
+      <input type="file" id="f2" accept=".bin,.so,.dll,.exe">
+      <div>drop file để bơm code // .bin / .so</div>
+    </div>
+    <div class="info" id="i2" style="display:none"></div>
+    <div class="label">// chọn kiểu bơm</div>
+    <div class="grid">
+      <button class="sq" id="b1" onclick="doBelly()" disabled><div class="i">⌖</div><div class="l">bơm code</div><div class="s">aim bụng</div></button>
+      <button class="sq" id="b2" onclick="doNeck()" disabled><div class="i">☰</div><div class="l">bơm aim</div><div class="s">neck nhẹ</div></button>
+      <button class="sq" id="b3" onclick="doDrag()" disabled><div class="i">✛</div><div class="l">bơm code</div><div class="s">aim drag</div></button>
+      <button class="sq" id="b4" onclick="doChest()" disabled><div class="i">◆</div><div class="l">ghim ngực</div><div class="s">chest pin</div></button>
+      <button class="sq" id="b5" onclick="doAimChest()" disabled><div class="i">◇</div><div class="l">aim ngực</div><div class="s">spine1↔head</div></button>
+      <button class="sq" id="b6" onclick="doAimNeckChest()" disabled><div class="i">✦</div><div class="l">aim cổ+ngực</div><div class="s">combo</div></button>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <button id="dl2" onclick="dlPatched()" disabled>download file đã chỉnh sửa</button>
+    </div>
+    <div class="log" id="log">// log sẽ hiện ở đây</div>
+  </div>
+</div>
+
+<script>
+/* ===== nền hex ===== */
+(function(){
+  try {
+    var el = document.getElementById('hexbg');
+    if (!el) return;
+    var H = '0123456789abcdef';
+    function rb(){ return H.charAt(Math.floor(Math.random()*16)) + H.charAt(Math.floor(Math.random()*16)); }
+    function mk(){ var s=''; for (var c=0;c<90;c++) s+=rb()+' '; return s; }
+    var rows = [];
+    for (var i=0;i<100;i++) rows.push(mk());
+    el.textContent = rows.join('\n');
+    setInterval(function(){ rows.shift(); rows.push(mk()); el.textContent = rows.join('\n'); }, 70);
+  } catch(e){}
+})();
+
+/* ===== util ===== */
+function $(id){ return document.getElementById(id); }
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+function getFingerprint(){
+  try {
+    var parts = [];
+    parts.push(navigator.userAgent || '');
+    parts.push(navigator.language || '');
+    parts.push(screen.width + 'x' + screen.height + 'x' + screen.colorDepth);
+    parts.push(new Date().getTimezoneOffset());
+    parts.push(navigator.hardwareConcurrency || 0);
+    parts.push(navigator.platform || '');
+    try {
+      var c = document.createElement('canvas');
+      c.width = 200; c.height = 50;
+      var ctx = c.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#f60';
+      ctx.fillRect(0,0,100,50);
+      ctx.fillStyle = '#069';
+      ctx.fillText('THIENTRAN-fp-'+navigator.userAgent, 2, 2);
+      parts.push(c.toDataURL());
+    } catch(e){ parts.push('nocanvas'); }
+    var str = parts.join('|');
+    var h = 0;
+    for (var i=0;i<str.length;i++){ h = ((h<<5)-h) + str.charCodeAt(i); h |= 0; }
+    return 'fp_' + Math.abs(h).toString(36);
+  } catch(e){ return 'fp_fallback'; }
+}
+
+/* =========================================================
+   AUTH
+   ========================================================= */
+var STORAGE_KEYS = 'tt_keys_db_v1';
+var STORAGE_BIND = 'tt_key_bind_v1';
+var STORAGE_ACTIVE = 'tt_active_v1';
+var expireAt = 0;
+var timerId = null;
+
+function loadKeyDb(){
+  var raw = lsGet(STORAGE_KEYS);
+  if (!raw) return {};
+  try { return JSON.parse(raw) || {}; } catch(e){ return {}; }
+}
+function loadBind(){
+  var raw = lsGet(STORAGE_BIND);
+  if (!raw) return {};
+  try { return JSON.parse(raw) || {}; } catch(e){ return {}; }
+}
+function saveBind(obj){ lsSet(STORAGE_BIND, JSON.stringify(obj)); }
+
+function tryLogin(){
+  try {
+    var input = $('keyInput');
+    var msg = $('lockMsg');
+    var val = (input.value || '').trim();
+
+    if (!val){ msg.textContent = '✘ key rỗng'; return; }
+
+    var db = loadKeyDb();
+    var entry = db[val];
+    var fp = getFingerprint();
+
+    if (!entry || entry.revoked){
+      msg.textContent = '✘ key rỗng';
+      input.value = '';
+      return;
+    }
+
+    var bind = loadBind();
+    var b = bind[val];
+
+    // đã bind máy khác -> báo rỗng
+    if (b && b.fp !== fp){
+      msg.textContent = '✘ key rỗng';
+      input.value = '';
+      return;
+    }
+
+    var now = Date.now();
+
+    if (!b){
+      // lần đầu kích hoạt -> bind máy + đếm hạn
+      var exp = entry.days === 0 ? 0 : now + entry.days*24*60*60*1000;
+      b = {
+        fp: fp,
+        activatedAt: now,
+        expireAt: exp,
+        label: entry.label || (entry.days === 0 ? 'VĨNH VIỄN' : entry.days + ' ngày')
+      };
+      bind[val] = b;
+      saveBind(bind);
+    } else {
+      // đã kích hoạt trước đó -> check hạn
+      if (b.expireAt && b.expireAt <= now){
+        msg.textContent = '✘ key đã hết hạn';
+        input.value = '';
+        return;
+      }
+    }
+
+    expireAt = b.expireAt || 0;
+    lsSet(STORAGE_ACTIVE, val);
+    msg.textContent = '✔ key hợp lệ. đang mở...';
+    msg.style.color = '#3f3';
+    setTimeout(function(){ unlockTool(b.label); }, 300);
+  } catch(e){
+    $('lockMsg').textContent = '✘ lỗi: ' + e.message;
+  }
+}
+
+function unlockTool(label){
+  $('lockScreen').className = 'hidden';
+  $('mainTool').style.display = 'block';
+  $('keyBar').className = 'show';
+  $('keyName').textContent = label || '---';
+  startTimer();
+}
+
+function startTimer(){
+  if (timerId) clearInterval(timerId);
+  var timeEl = $('keyTime');
+  function tick(){
+    if (!expireAt){
+      timeEl.textContent = '∞';
+      timeEl.className = 'time';
+      return;
+    }
+    var left = expireAt - Date.now();
+    if (left <= 0){
+      timeEl.textContent = '00:00:00';
+      timeEl.className = 'time danger';
+      clearInterval(timerId);
+      lockOut();
+      return;
+    }
+    var s = Math.floor(left/1000);
+    var h = Math.floor(s/3600); s -= h*3600;
+    var m = Math.floor(s/60); s -= m*60;
+    function p(n){ return n<10?'0'+n:''+n; }
+    var days = Math.floor(h/24);
+    var hh = h % 24;
+    timeEl.textContent = (days > 0 ? days+'d '+p(hh) : p(h)) + ':' + p(m) + ':' + p(s);
+    timeEl.className = 'time' + (left < 3600*1000 ? ' danger' : left < 3*3600*1000 ? ' warn' : '');
+  }
+  tick();
+  timerId = setInterval(tick, 1000);
+}
+
+function lockOut(){
+  lsDel(STORAGE_ACTIVE);
+  $('mainTool').style.display = 'none';
+  $('keyBar').className = '';
+  $('lockScreen').className = '';
+  $('lockMsg').textContent = '✘ key đã hết hạn. nhập key mới';
+  $('keyInput').value = '';
+}
+
+/* auto unlock */
+(function autoUnlock(){
+  try {
+    var active = lsGet(STORAGE_ACTIVE);
+    if (!active) return;
+    var db = loadKeyDb();
+    var entry = db[active];
+    if (!entry || entry.revoked) return;
+    var bind = loadBind();
+    var b = bind[active];
+    if (!b) return;
+    if (b.fp !== getFingerprint()) return;
+    var now = Date.now();
+    if (b.expireAt && b.expireAt <= now){ lsDel(STORAGE_ACTIVE); return; }
+    expireAt = b.expireAt || 0;
+    unlockTool(b.label);
+  } catch(e){}
+})();
+
+/* =========================================================
+   MAIN TOOL
+   ========================================================= */
+var buf1=null,name1=null,buf2=null,name2=null,patched=null;
+
+function switchTab(n){
+  $('t1').className = 'tab';
+  $('t2').className = 'tab';
+  $('p1').className = 'panel';
+  $('p2').className = 'panel';
+  $('t'+n).className = 'tab active';
+  $('p'+n).className = 'panel active';
+}
+
+function wire(dzId,inputId,cb){
+  var dz = $(dzId), input = $(inputId);
+  if (!dz || !input) return;
+  dz.onclick = function(e){ if (e.target === input) return; input.click(); };
+  input.onchange = function(){ if (this.files && this.files[0]) cb(this.files[0]); };
+  dz.ondragover = function(e){ e.preventDefault(); dz.className = 'dz drag'; };
+  dz.ondragleave = function(){ dz.className = 'dz'; };
+  dz.ondrop = function(e){
+    e.preventDefault(); dz.className = 'dz';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) cb(e.dataTransfer.files[0]);
+  };
+}
+
+wire('dz1','f1',function(f){
+  if (f.size > 100*1024*1024){ $('v1').textContent = 'file > 100MB'; return; }
+  var r = new FileReader();
+  r.onload = function(){
+    buf1 = new Uint8Array(r.result);
+    name1 = f.name;
+    $('i1').style.display = 'block';
+    $('i1').innerHTML = '<span>'+f.name+'</span> // '+f.size+' bytes';
+    viewAs('hex');
+    $('dl1').disabled = false;
+  };
+  r.readAsArrayBuffer(f);
+});
+
+wire('dz2','f2',function(f){
+  if (f.size > 100*1024*1024){ log('file > 100MB','err'); return; }
+  var r = new FileReader();
+  r.onload = function(){
+    buf2 = new Uint8Array(r.result);
+    name2 = f.name;
+    patched = null;
+    $('i2').style.display = 'block';
+    $('i2').innerHTML = '<span>'+f.name+'</span> // '+f.size+' bytes';
+    for (var i=1;i<=6;i++) $('b'+i).disabled = false;
+    $('dl2').disabled = true;
+    log('loaded '+f.name+' // '+f.size+' bytes','ok');
+  };
+  r.readAsArrayBuffer(f);
+});
+
+function viewAs(mode){
+  if (!buf1) return;
+  var el = $('v1'), i, c, hex, ascii, addr, h;
+  if (mode === 'hex'){
+    var lines = [];
+    var max = Math.min(buf1.length, 100*1024);
+    for (i=0;i<max;i+=16){
+      c = buf1.subarray(i,i+16);
+      hex = ''; ascii = '';
+      for (var k=0;k<c.length;k++){
+        h = c[k].toString(16);
+        if (h.length < 2) h = '0'+h;
+        hex += h+' ';
+        ascii += (c[k]>=32 && c[k]<127) ? String.fromCharCode(c[k]) : '.';
+      }
+      while (hex.length < 47) hex += ' ';
+      addr = i.toString(16);
+      while (addr.length < 8) addr = '0'+addr;
+      lines.push('<span class="addr">'+addr+'</span>  <span class="hex">'+hex+'</span>  <span class="ascii">'+ascii.replace(/</g,'&lt;')+'</span>');
+    }
+    el.innerHTML = lines.join('\n');
+  } else if (mode === 'ascii'){
+    var out = '';
+    var max2 = Math.min(buf1.length, 200*1024);
+    for (i=0;i<max2;i++){
+      c = buf1[i];
+      out += (c>=32 && c<127) ? String.fromCharCode(c) : (c===10 ? '\n' : '·');
+    }
+    el.textContent = out;
+  } else {
+    var arr = [];
+    var cur = '', start = 0;
+    for (i=0;i<buf1.length;i++){
+      c = buf1[i];
+      if (c>=32 && c<127){ if (!cur) start = i; cur += String.fromCharCode(c); }
+      else { if (cur.length >= 4) arr.push({off:start, s:cur}); cur = ''; }
+    }
+    if (cur.length >= 4) arr.push({off:start, s:cur});
+    if (!arr.length){ el.textContent = '// không có string >= 4 ký tự'; return; }
+    var html = [];
+    for (i=0;i<arr.length;i++){
+      var off = arr[i].off.toString(16);
+      while (off.length < 8) off = '0'+off;
+      html.push('<span class="addr">0x'+off+'</span>  <span class="str">'+arr[i].s.replace(/</g,'&lt;')+'</span>');
+    }
+    el.innerHTML = html.join('\n');
+  }
+}
+
+function dlRaw(){ if (buf1) dlBlob(buf1, name1); }
+
+function toBytes(s){
+  var b = new Uint8Array(s.length);
+  for (var i=0;i<s.length;i++) b[i] = s.charCodeAt(i) & 0xff;
+  return b;
+}
+
+function find(buf, needle){
+  var out = [];
+  var nl = needle.length;
+  if (!nl) return out;
+  outer: for (var i=0;i<=buf.length-nl;i++){
+    for (var j=0;j<nl;j++) if (buf[i+j] !== needle[j]) continue outer;
+    out.push(i);
+  }
+  return out;
+}
+
+function applySwaps(buf, rules, tokenBase){
+  var out = new Uint8Array(buf);
+  var tokens = [];
+  var i, k;
+  for (i=0;i<rules.length;i++){
+    var tk = new Uint8Array(rules[i].from.length);
+    for (k=0;k<tk.length;k++) tk[k] = tokenBase+i;
+    tokens.push({from:rules[i].from, to:rules[i].to, token:tk, count:0});
+  }
+  for (i=0;i<tokens.length;i++){
+    var hits = find(out, toBytes(tokens[i].from));
+    tokens[i].count = hits.length;
+    for (var h=0;h<hits.length;h++) out.set(tokens[i].token, hits[h]);
+  }
+  for (i=0;i<tokens.length;i++){
+    var hits2 = find(out, tokens[i].token);
+    var toB = toBytes(tokens[i].to);
+    var fromLen = tokens[i].from.length;
+    for (var h2=0;h2<hits2.length;h2++){
+      var pos = hits2[h2];
+      var n = Math.min(toB.length, fromLen);
+      for (k=0;k<n;k++) out[pos+k] = toB[k];
+      for (k=n;k<fromLen;k++) out[pos+k] = 0;
+    }
+  }
+  return {out:out, tokens:tokens};
+}
+
+function finish(out){
+  patched = out;
+  $('dl2').disabled = false;
+  log('in:  '+buf2.length+' bytes','ok');
+  log('out: '+out.length+' bytes','ok');
+  log(out.length === buf2.length ? 'dung lượng giữ nguyên ✔' : 'dung lượng lệch','warn');
+}
+
+function logTokens(tokens){
+  var total = 0;
+  for (var i=0;i<tokens.length;i++){
+    total += tokens[i].count;
+    log(tokens[i].from+' -> '+tokens[i].to+' : '+tokens[i].count+' chỗ', tokens[i].count?'ok':'warn');
+  }
+  if (total === 0) log('không tìm thấy bone nào','err');
+  else log('tổng '+total+' swap. done.','ok');
+}
+
+function doBelly(){
+  if (!buf2) return log('chưa upload file','err');
+  if (!confirm('chắc chắn bơm code aim bụng?')) return log('hủy','warn');
+  log('bơm code aim bụng...','warn');
+  var r = applySwaps(buf2, [
+    {from:'bone_Neck', to:'bone_Spine'},
+    {from:'bone_Spine', to:'bone_Head'},
+    {from:'bone_Head', to:'bone_Neck'}
+  ], 1);
+  logTokens(r.tokens); finish(r.out);
+}
+
+function doNeck(){
+  if (!buf2) return log('chưa upload file','err');
+  if (!confirm('chắc chắn bơm aim neck nhẹ?')) return log('hủy','warn');
+  log('bơm aim neck nhẹ...','warn');
+  var r = applySwaps(buf2, [{from:'bone_Neck', to:'bone_Head'}], 1);
+  logTokens(r.tokens); finish(r.out);
+}
+
+var DRAG_OFF = 0x7148;
+var DRAG_BYTES = new Uint8Array([
+  0x31,0x69,0x74,0xEB,0x89,0x29,0xC5,0xBE,
+  0x16,0xDC,0x98,0xBD,0xBB,0x82,0x97,0xB4,
+  0x00,0x00,0x00,0x00,0xBF,0xB2,0x2F,0x3F,
+  0x43,0x32,0x73,0x36,0x66,0x03,0x7B,0x35,
+  0x72,0x1C,0xC7,0x3F,0x72,0x1C,0xC7,0x3F,
+  0x72,0x1C,0xC7,0x3F,0x10,0x00,0x00,0x00,
+  0x62,0x6F,0x6E,0x65,0x5F,0x48,0x65,0x61,
+  0x64,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+  0x23,0xAA,0xA6,0xB8,0xB2,0xF7,0x1F,0xA4
+]);
+
+function doDrag(){
+  if (!buf2) return log('ch
